@@ -21,11 +21,22 @@ public class EventTest {
   @Test public void heartbeatHasNoMoney() { assertEquals(0,Event.parse("shop",new Event("h","shop","heartbeat",10000,0).json()).amount); }
   @Test public void combineMergesIncrementally() {
     var fn=new Transforms.SumPayments(); var a=fn.addInput(fn.createAccumulator(),event());
-    var b=fn.addInput(fn.createAccumulator(),event()); var total=fn.mergeAccumulators(List.of(a,b));
+    var b=fn.addInput(fn.createAccumulator(),new Event("two","shop","payment",10000,100)); var total=fn.extractOutput(fn.mergeAccumulators(List.of(a,b)));
     assertEquals(2,total.count); assertEquals(200,total.amount);
   }
+  @Test public void deduplicationSurvivesAccumulatorMerge() {
+    var fn=new Transforms.SumPayments();
+    var a=fn.addInput(fn.createAccumulator(),event()); var b=fn.addInput(fn.createAccumulator(),event());
+    var total=fn.extractOutput(fn.mergeAccumulators(List.of(a,b)));
+    assertEquals(1,total.count); assertEquals(100,total.amount);
+  }
+  @Test public void conflictingDuplicateFails() {
+    var fn=new Transforms.SumPayments(); var a=fn.addInput(fn.createAccumulator(),event());
+    assertThrows(IllegalArgumentException.class,()->fn.addInput(a,new Event("one","shop","payment",10000,999)));
+  }
   @Test public void overflowFailsExplicitly() {
-    assertThrows(ArithmeticException.class,()->new Transforms.SumPayments().addInput(new Transforms.Totals(1,Long.MAX_VALUE),event()));
+    var a = new Transforms.Accumulator(); a.amount=Long.MAX_VALUE;
+    assertThrows(ArithmeticException.class,()->new Transforms.SumPayments().addInput(a,event()));
   }
   @Test public void watermarkMonotonicUnderDisorder() {
     var policy=new DomainTimePolicy(Optional.empty()); policy.observe(30000); policy.observe(10000);

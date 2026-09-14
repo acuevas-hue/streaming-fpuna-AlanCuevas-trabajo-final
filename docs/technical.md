@@ -51,8 +51,9 @@ con la misma función usada por la transformación de validación. Un JSON invá
 La salida lateral guarda clave, original y motivo en `invalid_events`, con SHA-256 como clave idempotente.
 Los heartbeats son eventos de control y no entran al cálculo de dinero.
 
-`Validate`, `Deduplicate`, `SumPayments`, `Format` y los sinks tienen responsabilidades separadas.
-`SumPayments` mantiene únicamente conteo y suma por acumulador; no reúne todos los pagos en una lista.
+`Validate`, `SumPayments`, `Format` y los sinks tienen responsabilidades separadas.
+`SumPayments` mantiene un mapa ID→monto y una suma incremental; no retiene el payload completo.
+La unión de acumuladores deduplica también entre particiones de trabajo internas del combinador.
 Las sumas usan `Math.addExact`: un overflow detiene el cálculo en vez de publicar dinero incorrecto.
 
 ## Política temporal
@@ -76,9 +77,11 @@ no se garantiza el cierre de su última ventana hasta recibir progreso posterior
 
 ## Deduplicación y estado
 
-SetState por clave y ventana, con ID estable. Timer de tiempo de evento en `window.maxTimestamp + 120 s`
-libera el conjunto. La eliminación coincide con la expiración de la ventana a precisión de milisegundos.
+El acumulador de Combine.perKey conserva IDs y montos por clave y ventana. Beam libera ese estado
+al expirar la ventana más allowed lateness. No se utiliza un timer de usuario ni un ParDo de deduplicación
+anterior que retenga el watermark del agregador en DirectRunner.
 Horizonte: vida de la ventana más lateness, no deduplicación eterna ni un TTL de reloj real.
+Un ID con montos contradictorios dentro de la misma clave/ventana hace fallar explícitamente el cálculo.
 El ID de un hecho debe conservar clave, tiempo y monto en cada reenvío. IDs conflictivos en otra clave o ventana
 están fuera del contrato; el sistema no dispone de un registro global de identidad ni reconcilia correcciones.
 El crecimiento de estado depende de IDs únicos por minuto/comercio, velocidad del watermark y lateness.
@@ -107,7 +110,7 @@ historial de las ventanas a reconstruir; retención insuficiente puede impedir r
 ## Observabilidad, evidencia y límites operativos
 
 Logs `PRODUCED` con ID, timestamp, partición y offset; `RESULT` con agregado, pane y timing; `INVALID` con motivo.
-Beam registra contadores consumed, valid, duplicates, heartbeats, invalid, state_expired, panes, sink_writes y db_retries.
+Beam registra contadores consumed, valid, heartbeats, invalid, panes, sink_writes y db_retries.
 No se incluye exportador Prometheus ni dashboard; las evidencias de operación se apoyan en logs y SQL.
 `scripts/demo.sh` guarda productor, resultados SQL, verificaciones, logs de servicios y prueba de reinicio.
 La suite usa TestStream para controlar exactamente el watermark; la demo Kafka prueba un evento fuera de orden.

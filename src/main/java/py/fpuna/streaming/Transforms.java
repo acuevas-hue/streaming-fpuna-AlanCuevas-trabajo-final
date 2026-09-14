@@ -37,24 +37,6 @@ public final class Transforms {
     }
   }
 
-  public static class Deduplicate extends DoFn<KV<String, Event>, KV<String, Event>> {
-    @StateId("seen") private final StateSpec<SetState<String>> seen = StateSpecs.set(StringUtf8Coder.of());
-    @TimerId("gc") private final TimerSpec gc = TimerSpecs.timer(TimeDomain.EVENT_TIME);
-    @ProcessElement public void process(ProcessContext c, BoundedWindow window,
-        @StateId("seen") SetState<String> ids, @TimerId("gc") Timer timer) {
-      Event e = c.element().getValue();
-      if (ids.contains(e.id).read()) {
-        Metrics.counter("payments", "duplicates").inc(); return;
-      }
-      ids.add(e.id);
-      timer.withNoOutputTimestamp().set(window.maxTimestamp().plus(Duration.standardSeconds(LATENESS_SECONDS)));
-      c.output(c.element());
-    }
-    @OnTimer("gc") public void clear(@StateId("seen") SetState<String> ids) {
-      ids.clear(); Metrics.counter("payments", "state_expired").inc();
-    }
-  }
-
   public static class Totals implements Serializable {
     public long count, amount;
     @Override public boolean equals(Object o) { return o instanceof Totals t && count==t.count && amount==t.amount; }
@@ -62,19 +44,31 @@ public final class Transforms {
     public Totals() {}
     public Totals(long count, long amount) { this.count = count; this.amount = amount; }
   }
-  public static class SumPayments extends Combine.CombineFn<Event, Totals, Totals> {
-    @Override public Totals createAccumulator() { return new Totals(); }
-    @Override public Totals addInput(Totals a, Event e) {
-      return new Totals(Math.addExact(a.count, 1), Math.addExact(a.amount, e.amount));
-    }
-    @Override public Totals mergeAccumulators(Iterable<Totals> all) {
-      Totals a = new Totals();
-      for (Totals b : all) { a.count = Math.addExact(a.count, b.count); a.amount = Math.addExact(a.amount, b.amount); }
+  public static class Accumulator implements Serializable {
+    final java.util.Map<String,Long> amounts = new java.util.HashMap<>();
+    long amount;
+    @Override public boolean equals(Object o) { return o instanceof Accumulator a && amount==a.amount && amounts.equals(a.amounts); }
+    @Override public int hashCode() { return java.util.Objects.hash(amounts,amount); }
+  }
+  /** Mergeable exact deduplication: retain IDs/amounts, never full payment payloads. */
+  public static class SumPayments extends Combine.CombineFn<Event, Accumulator, Totals> {
+    @Override public Accumulator createAccumulator() { return new Accumulator(); }
+    private Accumulator add(Accumulator a, String id, long amount) {
+      Long previous = a.amounts.get(id);
+      if (previous == null) {
+        a.amount = Math.addExact(a.amount, amount); a.amounts.put(id,amount);
+      } else if (previous != amount) throw new IllegalArgumentException("Conflicting amount for event_id " + id);
       return a;
     }
-    @Override public Totals extractOutput(Totals a) { return a; }
-    @Override public Coder<Totals> getAccumulatorCoder(CoderRegistry r, Coder<Event> input) {
-      return SerializableCoder.of(Totals.class);
+    @Override public Accumulator addInput(Accumulator a, Event e) { return add(a,e.id,e.amount); }
+    @Override public Accumulator mergeAccumulators(Iterable<Accumulator> all) {
+      Accumulator a = createAccumulator();
+      for (Accumulator b : all) for (var entry : b.amounts.entrySet()) add(a,entry.getKey(),entry.getValue());
+      return a;
+    }
+    @Override public Totals extractOutput(Accumulator a) { return new Totals(a.amounts.size(),a.amount); }
+    @Override public Coder<Accumulator> getAccumulatorCoder(CoderRegistry r, Coder<Event> input) {
+      return SerializableCoder.of(Accumulator.class);
     }
     @Override public Coder<Totals> getDefaultOutputCoder(CoderRegistry r, Coder<Event> input) {
       return SerializableCoder.of(Totals.class);
@@ -107,7 +101,6 @@ public final class Transforms {
                 .withLateFirings(AfterPane.elementCountAtLeast(1)))
             .withAllowedLateness(Duration.standardSeconds(LATENESS_SECONDS))
             .accumulatingFiredPanes())
-        .apply("DeduplicateWithinMerchantWindow", ParDo.of(new Deduplicate()))
         .apply("IncrementalTotals", Combine.perKey(new SumPayments()))
         .apply("MaterializePane", ParDo.of(new Format())).setCoder(SerializableCoder.of(Result.class));
   }

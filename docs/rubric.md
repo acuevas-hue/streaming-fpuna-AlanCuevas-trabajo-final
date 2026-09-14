@@ -9,7 +9,7 @@ del commit y en su artefacto `streaming-evidence`. La defensa y la presentación
 | Eventos y Kafka | 15% | Event.java, Producer.java, compose.yaml, docs/event-contract.md; producer.log |
 | Apache Beam | 20% | App.java: KafkaIO; Transforms.java: ParDo, salida lateral, Combine.perKey; Smoke.java |
 | Tiempo y ventanas | 15% | DomainTimePolicy.java, Transforms.java; TemporalTest y EventTest |
-| Confiabilidad | 15% | Deduplicate, timer, Database.UPSERT, retry; smoke.log y restart.log; límites en technical.md |
+| Confiabilidad | 15% | SumPayments (unión de IDs), expiración de ventana, Database.UPSERT, retry; smoke.log y restart.log; límites en technical.md |
 | Pruebas y E2E | 15% | src/test/, scripts/demo.sh, resultados SQL, workflow y artefactos |
 | Documentación y presentación | 10% | README, technical.md, demo.md, CONTRIBUTORS.md; demo en vivo o video a presentar |
 
