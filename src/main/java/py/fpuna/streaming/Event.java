@@ -15,6 +15,8 @@ public final class Event implements Serializable {
   public Event(String id, String key, String type, long timeMs, long amount) {
     this.id = id; this.key = key; this.type = type; this.timeMs = timeMs; this.amount = amount;
   }
+  @Override public boolean equals(Object o) { return o instanceof Event e && id.equals(e.id) && key.equals(e.key) && type.equals(e.type) && timeMs==e.timeMs && amount==e.amount; }
+  @Override public int hashCode() { return java.util.Objects.hash(id,key,type,timeMs,amount); }
   private static String required(JsonNode n, String name) {
     JsonNode v = n.get(name);
     if (v == null || !v.isTextual() || v.asText().isBlank() || v.asText().length() > 200)

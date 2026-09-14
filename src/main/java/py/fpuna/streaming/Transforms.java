@@ -47,7 +47,7 @@ public final class Transforms {
         Metrics.counter("payments", "duplicates").inc(); return;
       }
       ids.add(e.id);
-      timer.set(window.maxTimestamp().plus(Duration.standardSeconds(LATENESS_SECONDS)));
+      timer.withNoOutputTimestamp().set(window.maxTimestamp().plus(Duration.standardSeconds(LATENESS_SECONDS)));
       c.output(c.element());
     }
     @OnTimer("gc") public void clear(@StateId("seen") SetState<String> ids) {
@@ -57,6 +57,8 @@ public final class Transforms {
 
   public static class Totals implements Serializable {
     public long count, amount;
+    @Override public boolean equals(Object o) { return o instanceof Totals t && count==t.count && amount==t.amount; }
+    @Override public int hashCode() { return java.util.Objects.hash(count,amount); }
     public Totals() {}
     public Totals(long count, long amount) { this.count = count; this.amount = amount; }
   }
@@ -85,6 +87,8 @@ public final class Transforms {
       this.key = key; this.windowStart = windowStart; this.count = count; this.amount = amount;
       this.pane = pane; this.timing = timing;
     }
+    @Override public boolean equals(Object o) { return o instanceof Result r && key.equals(r.key) && windowStart==r.windowStart && count==r.count && amount==r.amount && pane==r.pane && timing.equals(r.timing); }
+    @Override public int hashCode() { return java.util.Objects.hash(key,windowStart,count,amount,pane,timing); }
     public String summary() { return key + "|" + windowStart + "|" + count + "|" + amount; }
   }
   public static class Format extends DoFn<KV<String, Totals>, Result> {

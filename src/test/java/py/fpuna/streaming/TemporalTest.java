@@ -28,6 +28,7 @@ public class TemporalTest {
     PAssert.that(result).satisfies(rows->{
       boolean late=false;
       for(var r:rows) {
+        System.out.println("TEMPORAL " + r.summary() + " timing=" + r.timing);
         assertTrue("duplicate/expired record counted",r.count<=3);
         if(r.count==3) { assertEquals(600,r.amount); if(r.timing.equals("LATE")) late=true; }
       }
@@ -52,8 +53,8 @@ public class TemporalTest {
     var result=values.apply(ParDo.of(new Transforms.Validate()).withOutputTags(Transforms.VALID,TupleTagList.of(Transforms.INVALID)));
     result.get(Transforms.VALID).setCoder(CODER);
     result.get(Transforms.INVALID).setCoder(StringUtf8Coder.of());
-    PAssert.thatSingleton(result.get(Transforms.VALID).apply(Count.globally())).isEqualTo(1L);
-    PAssert.thatSingleton(result.get(Transforms.INVALID).apply(Count.globally())).isEqualTo(1L);
+    PAssert.thatSingleton(result.get(Transforms.VALID).apply("CountValid",Count.globally())).isEqualTo(1L);
+    PAssert.thatSingleton(result.get(Transforms.INVALID).apply("CountInvalid",Count.globally())).isEqualTo(1L);
     pipeline.run().waitUntilFinish();
   }
 }
