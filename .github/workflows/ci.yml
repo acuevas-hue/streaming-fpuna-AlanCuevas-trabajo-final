@@ -1,0 +1,36 @@
+name: Validate streaming project
+on:
+  push:
+    branches: [main, 'implementation/**']
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test-and-demo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Unit and event-time tests
+        run: mvn -B -ntp verify
+      - name: Real KafkaIO and PostgreSQL smoke test
+        run: bash scripts/demo.sh
+      - name: Upload test reports and execution evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: streaming-evidence
+          path: |
+            target/surefire-reports/
+            evidence/
+      - name: Stop demo services
+        if: always()
+        run: |
+          if [ -f evidence/compose-project.txt ]; then
+            docker compose -p "$(cat evidence/compose-project.txt)" down -v
+          fi
