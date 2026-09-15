@@ -120,7 +120,6 @@ duplicados, late data y expiración. El smoke test verifica SQL real, reintentos
 
 - [Documento técnico y arquitectura](docs/technical.md)
 - [Contrato y ejemplos](docs/event-contract.md)
-- [Matriz de rúbrica y evidencia](docs/rubric.md)
 - [Integrantes y contribuciones](CONTRIBUTORS.md)
 
 ## Garantías resumidas
