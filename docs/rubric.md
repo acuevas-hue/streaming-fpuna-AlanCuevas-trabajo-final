@@ -1,7 +1,7 @@
 # Matriz de evaluación
 
 Esta matriz enlaza implementación y pruebas, no certifica una nota. La evidencia ejecutada está en el workflow
-del commit y en su artefacto `streaming-evidence`. La defensa y la presentación dependen del integrante.
+del commit y en su artefacto `streaming-evidence`.
 
 | Criterio | Peso | Implementación / evidencia |
 |---|---:|---|
@@ -11,7 +11,7 @@ del commit y en su artefacto `streaming-evidence`. La defensa y la presentación
 | Tiempo y ventanas | 15% | DomainTimePolicy.java, Transforms.java; TemporalTest y EventTest |
 | Confiabilidad | 15% | SumPayments (unión de IDs), expiración de ventana, Database.UPSERT, retry; smoke.log y restart.log; límites en technical.md |
 | Pruebas y E2E | 15% | src/test/, scripts/demo.sh, resultados SQL, workflow y artefactos |
-| Documentación y presentación | 10% | README, technical.md, demo.md, CONTRIBUTORS.md; demo en vivo o video a presentar |
+| Documentación y presentación | 10% | README, technical.md, CONTRIBUTORS.md y evidencia de ejecución |
 
 ## Casos y oráculos
 
@@ -23,6 +23,3 @@ del commit y en su artefacto `streaming-evidence`. La defensa y la presentación
 - Inválido: JSON corrupto produce exactamente una fila en invalid_events en la demo.
 - Idempotencia: reescritura del agregado y pane antiguo mantienen 3/600 y una única fila por clave.
 - Reinicio: Beam vuelve a consumir Kafka mientras PostgreSQL conserva los resultados, que no deben regresar.
-
-No adjuntar logs inventados ni marcar el video como entregado sin grabarlo. Antes de entregar descargar los
-artefactos de la ejecución verde correspondiente al commit y conservarlos junto a la entrega.

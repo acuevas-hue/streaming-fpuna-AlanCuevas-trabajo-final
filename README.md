@@ -11,14 +11,26 @@ Calcula cantidad y monto de pagos PYG por comercio y minuto, con deduplicación 
 Consultar [GitHub Actions](https://github.com/acuevas-hue/streaming-fpuna-AlanCuevas-trabajo-final/actions).
 El workflow ejecuta las pruebas y la demostración real; el artefacto `streaming-evidence` contiene los reportes y logs.
 Validación comprobada: **19 tests aprobados y smoke test real con reinicio exitoso**.
-Ver [informe de ejecución y resultados](docs/validation-status.md). Comprobar también el workflow del commit que se entrega.
+Ver [informe de ejecución y resultados](docs/validation-status.md). El workflow identifica el commit validado.
 
 ## Requisitos
 
-- Docker Engine con Docker Compose v2 y acceso a Internet para descargar imágenes y dependencias.
+- Git instalado para clonar el repositorio.
+- Docker Engine con Docker Compose v2, o Docker Desktop con Compose v2, instalado e iniciado.
+- Acceso a Internet para descargar imágenes y dependencias.
 - Bash; reservar aproximadamente 4 GB de RAM y 6 GB de disco. La primera construcción puede tardar varios minutos.
 - Java 17 y Maven 3.9 si se quieren ejecutar las pruebas fuera de Docker.
 - Kafka y PostgreSQL no exponen puertos al host; todos los comandos operan dentro de Compose.
+
+Comprobar los prerrequisitos en una terminal Bash:
+
+```bash
+git --version
+docker info
+docker compose version
+```
+
+`docker info` debe responder sin error de conexión ni permisos. En macOS/Windows, abrir Docker Desktop y esperar a que el motor esté listo; en Windows ejecutar estos comandos desde WSL2 con integración de Docker habilitada.
 
 ## Demostración completa
 
@@ -45,12 +57,25 @@ Hay además un JSON inválido y tres heartbeats de progreso. `invalid_events` de
 La evidencia tardía respecto al watermark y el descarte por expiración se prueban separadamente con `TestStream`.
 El smoke test demuestra desorden real desde Kafka; no etiqueta ese desorden como late sin medir el watermark.
 
-Inspeccionar y detener el entorno generado:
+Si la ejecución fue exitosa, la terminal muestra `SMOKE PASS` dos veces: antes y después del reinicio de Beam.
+El comando anterior inicia el pipeline automáticamente; no requiere otra terminal ni ejecutar Java manualmente.
+
+Consultar la producción, el estado de los servicios y la salida SQL desde la misma carpeta:
 
 ```bash
 export COMPOSE_PROJECT_NAME="$(cat evidence/compose-project.txt)"
-docker compose logs -f pipeline
-docker compose exec postgres psql -U payments -d payments -c 'TABLE payment_windows;'
+docker compose ps -a
+cat evidence/producer.log
+docker compose logs --tail=50 pipeline
+docker compose exec -T postgres psql -U payments -d payments -c 'TABLE payment_windows;' -c 'TABLE invalid_events;'
+```
+
+Comparar las tres filas con la tabla de resultados esperados y comprobar una fila en `invalid_events`.
+Para seguir los logs en vivo, usar `docker compose logs -f pipeline`; salir con Ctrl+C (esto no detiene el pipeline).
+
+Detener el entorno desde esa misma terminal, conservando `COMPOSE_PROJECT_NAME`:
+
+```bash
 docker compose down
 ```
 
@@ -62,7 +87,7 @@ docker compose down
 docker compose up -d --build pipeline
 docker compose run --rm producer produce demo
 docker compose run --rm verify
-docker compose logs -f pipeline
+docker compose logs --tail=50 pipeline
 docker compose down
 ```
 
@@ -96,7 +121,6 @@ duplicados, late data y expiración. El smoke test verifica SQL real, reintentos
 - [Documento técnico y arquitectura](docs/technical.md)
 - [Contrato y ejemplos](docs/event-contract.md)
 - [Matriz de rúbrica y evidencia](docs/rubric.md)
-- [Guion de demostración y presentación](docs/demo.md)
 - [Integrantes y contribuciones](CONTRIBUTORS.md)
 
 ## Garantías resumidas

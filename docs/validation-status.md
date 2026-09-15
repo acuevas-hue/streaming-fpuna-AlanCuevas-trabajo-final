@@ -45,11 +45,3 @@ bash scripts/demo.sh
 Consultar siempre la ejecución del commit que se entrega. Los artefactos de Actions tienen retención limitada;
 descargarlos antes de la entrega. La referencia anterior identifica una ejecución concreta, no garantiza
 que cualquier modificación futura mantenga los mismos resultados.
-
-## Pendientes personales para la entrega
-
-- Presentar una demostración en vivo o grabar el video breve.
-- Completar y confirmar las contribuciones personales en CONTRIBUTORS.md.
-- Preparar la defensa siguiendo docs/demo.md.
-
-La ejecución automatizada es evidencia técnica; no reemplaza la presentación ni la defensa del integrante.
