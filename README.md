@@ -10,7 +10,8 @@ Calcula cantidad y monto de pagos PYG por comercio y minuto, con deduplicación 
 
 Consultar [GitHub Actions](https://github.com/acuevas-hue/streaming-fpuna-AlanCuevas-trabajo-final/actions).
 El workflow ejecuta las pruebas y la demostración real; el artefacto `streaming-evidence` contiene los reportes y logs.
-La existencia de este código no prueba una ejecución exitosa: comprobar que el workflow del commit que se entrega esté verde.
+Validación comprobada: **19 tests aprobados y smoke test real con reinicio exitoso**.
+Ver [informe de ejecución y resultados](docs/validation-status.md). Comprobar también el workflow del commit que se entrega.
 
 ## Requisitos
 
