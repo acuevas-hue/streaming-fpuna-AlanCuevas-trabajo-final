@@ -1,6 +1,6 @@
 # Monitoreo de pagos por comercio — Trabajo final
 
-**Integrante:** Alan Cuevas ([acuevas-hue](https://github.com/acuevas-hue)).
+**Integrantes:** Alan Cuevas,Luis Rios, Victor Mendoza.
 Curso: Streaming de datos y sus aplicaciones, Maestría en Inteligencia Artificial — FPUNA.
 
 Pipeline real: productor sintético → Apache Kafka → KafkaIO / Apache Beam Java → PostgreSQL.
